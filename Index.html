@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cow Breed Detection System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-section {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .upload-area {
+            border: 3px dashed rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            padding: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .upload-area:hover {
+            border-color: white;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .upload-text {
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .preview-section {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        .analyze-btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px 10px;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+        }
+
+        .analyze-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            color: white;
+            display: none;
+        }
+
+        .breed-result {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .breed-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .confidence {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .breed-info {
+            line-height: 1.6;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .breed-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .breed-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .breed-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .breed-card h3 {
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .sample-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .sample-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(238, 90, 36, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐄 Cow Breed Detection System</h1>
+        
+        <div class="upload-section">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-text">
+                    📸 Click here to upload a cow image<br>
+                    <small>Supports JPG, PNG, WebP formats</small>
+                </div>
+            </div>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="preview-section">
+            <img id="imagePreview" alt="Uploaded cow image">
+        </div>
+
+        <div style="text-align: center;">
+            <button id="analyzeBtn" class="analyze-btn" disabled>🔍 Analyze Breed</button>
+            <button id="sampleBtn" class="analyze-btn" onclick="loadSampleImages()">📋 Try Sample Images</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing cow breed... Please wait</p>
+        </div>
+
+        <div class="results-section" id="results">
+            <h2>🎯 Detection Results</h2>
+            <div id="breedResults"></div>
+        </div>
+
+        <div class="breed-gallery" id="sampleGallery" style="display: none;">
+            <h2 style="grid-column: 1/-1; text-align: center; color: #333; margin-bottom: 20px;">
+                📸 Sample Images - Click to Test
+            </h2>
+        </div>
+    </div>
+
+    <script>
+        // Cow breed database with characteristics
+        const cowBreeds = {
+            'Holstein': {
+                characteristics: ['Black and white patches', 'Large size', 'High milk production'],
+                description: 'Holstein cattle are known for their distinctive black and white markings and are the world\'s highest milk-producing dairy breed.',
+                origin: 'Netherlands',
+                avgWeight: '680-770 kg',
+                milkYield: '6,000-10,000+ kg/year'
+            },
+            'Jersey': {
+                characteristics: ['Light brown/fawn color', 'Small to medium size', 'Rich milk'],
+                description: 'Jersey cattle are small dairy cows known for producing milk with high butterfat content.',
+                origin: 'Jersey Island',
+                avgWeight: '350-400 kg',
+                milkYield: '3,500-5,500 kg/year'
+            },
+            'Angus': {
+                characteristics: ['Solid black or red color', 'Polled (hornless)', 'Muscular build'],
+                description: 'Aberdeen Angus cattle are known for high-quality beef production and excellent marbling.',
+                origin: 'Scotland',
+                avgWeight: '550-850 kg',
+                purpose: 'Beef production'
+            },
+            'Hereford': {
+                characteristics: ['Red body with white face', 'Horned or polled', 'Docile temperament'],
+                description: 'Hereford cattle are hardy beef cattle known for their distinctive red bodies and white faces.',
+                origin: 'England',
+                avgWeight: '500-800 kg',
+                purpose: 'Beef production'
+            },
+            'Brahman': {
+                characteristics: ['Gray color', 'Large hump', 'Heat tolerant'],
+                description: 'Brahman cattle are known for their heat tolerance and distinctive hump, originating from Indian Zebu cattle.',
+                origin: 'India (via USA)',
+                avgWeight: '500-700 kg',
+                purpose: 'Beef production, heat tolerance'
+            },
+            'Charolais': {
+                characteristics: ['Cream to white color', 'Large muscular build', 'Fast growth'],
+                description: 'Charolais cattle are large, muscular beef cattle known for excellent growth rates and lean meat.',
+                origin: 'France',
+                avgWeight: '650-950 kg',
+                purpose: 'Beef production'
+            },
+            'Simmental': {
+                characteristics: ['Golden red with white markings', 'Large size', 'Dual purpose'],
+                description: 'Simmental cattle are versatile, used for both milk and beef production.',
+                origin: 'Switzerland',
+                avgWeight: '650-900 kg',
+                purpose: 'Dual purpose (milk & beef)'
+            },
+            'Limousin': {
+                characteristics: ['Golden wheat color', 'Heavily muscled', 'Lean meat'],
+                description: 'Limousin cattle are known for producing lean, high-quality beef with excellent muscle development.',
+                origin: 'France',
+                avgWeight: '550-750 kg',
+                purpose: 'Beef production'
+            }
+        };
+
+        // Sample images for testing
+        const sampleImages = [
+            { name: 'Holstein Sample', url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjZjBmMGYwIi8+CjxlbGxpcHNlIGN4PSIxNTAiIGN5PSIxMDAiIHJ4PSIxMDAiIHJ5PSI2MCIgZmlsbD0iIzMzMzMzMyIvPgo8ZWxsaXBzZSBjeD0iMTIwIiBjeT0iODAiIHJ4PSIzMCIgcnk9IjIwIiBmaWxsPSJ3aGl0ZSIvPgo8ZWxsaXBzZSBjeD0iMTgwIiBjeT0iMTIwIiByeD0iMjUiIHJ5PSIxNSIgZmlsbD0id2hpdGUiLz4KPHRleHQgeD0iMTUwIiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMzMzMyI+SG9sc3RlaW4gU2FtcGxlPC90ZXh0Pgo8L3N2Zz4K', breed: 'Holstein' },
+            { name: 'Jersey Sample', url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjZjBmMGYwIi8+CjxlbGxpcHNlIGN4PSIxNTAiIGN5PSIxMDAiIHJ4PSI4MCIgcnk9IjUwIiBmaWxsPSIjRDA4NDNDNCI+PC9lbGxpcHNlPgo8Y2lyY2xlIGN4PSIxMzAiIGN5PSI4NSIgcj0iNSIgZmlsbD0iIzMzMzMzMyIvPgo8Y2lyY2xlIGN4PSIxNzAiIGN5PSI4NSIgcj0iNSIgZmlsbD0iIzMzMzMzMyIvPgo8dGV4dCB4PSIxNTAiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzMzMzIj5KZXJzZXkgU2FtcGxlPC90ZXh0Pgo8L3N2Zz4K', breed: 'Jersey' },
+            { name: 'Angus Sample', url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjZjBmMGYwIi8+CjxlbGxpcHNlIGN4PSIxNTAiIGN5PSIxMDAiIHJ4PSI5NSIgcnk9IjU1IiBmaWxsPSIjMTExMTExIi8+CjxyZWN0IHg9IjEyMCIgeT0iMTQwIiB3aWR0aD0iMTUiIGhlaWdodD0iMzAiIGZpbGw9IiMxMTExMTEiLz4KPHJlY3QgeD0iMTY1IiB5PSIxNDAiIHdpZHRoPSIxNSIgaGVpZ2h0PSIzMCIgZmlsbD0iIzExMTExMSIvPgo8dGV4dCB4PSIxNTAiIHk9IjE5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzMzMzIj5Bbmd1cyBTYW1wbGU8L3RleHQ+Cjwvc3ZnPgo=', breed: 'Angus' }
+        ];
+
+        let currentImage = null;
+
+        // File input handling
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    currentImage = e.target.result;
+                    document.getElementById('analyzeBtn').disabled = false;
+                    hideResults();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Analyze button
+        document.getElementById('analyzeBtn').addEventListener('click', function() {
+            if (currentImage) {
+                analyzeCowBreed();
+            }
+        });
+
+        function analyzeCowBreed() {
+            showLoading();
+            
+            // Realistic image analysis simulation
+            setTimeout(() => {
+                analyzeImageContent(currentImage);
+            }, 2500);
+        }
+
+        function analyzeImageContent(imageData) {
+            // Create canvas to analyze image pixels
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = function() {
+                canvas.width = 224;  // Standard AI input size
+                canvas.height = 224;
+                ctx.drawImage(img, 0, 0, 224, 224);
+                
+                // Get image data for analysis
+                const imageData = ctx.getImageData(0, 0, 224, 224);
+                const pixels = imageData.data;
+                
+                // Analyze color patterns
+                const colorAnalysis = analyzeColorPatterns(pixels);
+                
+                // Determine breed based on visual features
+                const result = classifyBreed(colorAnalysis);
+                
+                displayResults(result.breed, result.confidence);
+                hideLoading();
+            };
+            
+            img.src = imageData;
+        }
+
+        function analyzeColorPatterns(pixels) {
+            let blackPixels = 0;
+            let whitePixels = 0;
+            let brownPixels = 0;
+            let redPixels = 0;
+            let totalPixels = pixels.length / 4; // 4 values per pixel (RGBA)
+            
+            // Sample every 10th pixel for performance
+            for (let i = 0; i < pixels.length; i += 40) { // Every 10th pixel
+                const r = pixels[i];
+                const g = pixels[i + 1];
+                const b = pixels[i + 2];
+                
+                // Calculate brightness and color dominance
+                const brightness = (r + g + b) / 3;
+                
+                if (brightness < 60) {
+                    blackPixels++;
+                } else if (brightness > 200) {
+                    whitePixels++;
+                } else if (r > g && r > b && r > 100) {
+                    redPixels++;
+                } else if (r > 120 && g > 100 && b < 80) {
+                    brownPixels++;
+                }
+            }
+            
+            const sampledPixels = totalPixels / 10;
+            return {
+                blackRatio: blackPixels / sampledPixels,
+                whiteRatio: whitePixels / sampledPixels,
+                brownRatio: brownPixels / sampledPixels,
+                redRatio: redPixels / sampledPixels,
+                dominantPattern: getDominantPattern(blackPixels, whitePixels, brownPixels, redPixels)
+            };
+        }
+
+        function getDominantPattern(black, white, brown, red) {
+            const max = Math.max(black, white, brown, red);
+            if (max === black) return 'black';
+            if (max === white) return 'white';
+            if (max === brown) return 'brown';
+            if (max === red) return 'red';
+            return 'mixed';
+        }
+
+        function classifyBreed(colorAnalysis) {
+            let breedScores = {};
+            
+            // Holstein: Black and white patterns
+            if (colorAnalysis.blackRatio > 0.2 && colorAnalysis.whiteRatio > 0.2) {
+                breedScores['Holstein'] = 0.8 + (colorAnalysis.blackRatio + colorAnalysis.whiteRatio) * 0.2;
+            }
+            
+            // Jersey: Brown/fawn coloring
+            if (colorAnalysis.brownRatio > 0.3 || colorAnalysis.dominantPattern === 'brown') {
+                breedScores['Jersey'] = 0.75 + colorAnalysis.brownRatio * 0.25;
+            }
+            
+            // Angus: Solid black
+            if (colorAnalysis.blackRatio > 0.4 && colorAnalysis.whiteRatio < 0.1) {
+                breedScores['Angus'] = 0.8 + colorAnalysis.blackRatio * 0.2;
+            }
+            
+            // Hereford: Red with white face
+            if (colorAnalysis.redRatio > 0.3 && colorAnalysis.whiteRatio > 0.15) {
+                breedScores['Hereford'] = 0.7 + (colorAnalysis.redRatio + colorAnalysis.whiteRatio) * 0.15;
+            }
+            
+            // Charolais: Light/cream colored
+            if (colorAnalysis.whiteRatio > 0.4 && colorAnalysis.blackRatio < 0.1) {
+                breedScores['Charolais'] = 0.75 + colorAnalysis.whiteRatio * 0.2;
+            }
+            
+            // Brahman: Gray coloring
+            if (colorAnalysis.dominantPattern === 'mixed' && colorAnalysis.blackRatio > 0.1 && colorAnalysis.whiteRatio > 0.1) {
+                breedScores['Brahman'] = 0.6 + Math.random() * 0.2;
+            }
+            
+            // Simmental: Golden/red with white
+            if (colorAnalysis.redRatio > 0.2 && colorAnalysis.whiteRatio > 0.1) {
+                breedScores['Simmental'] = 0.65 + (colorAnalysis.redRatio * 0.2);
+            }
+            
+            // Limousin: Golden wheat color
+            if (colorAnalysis.brownRatio > 0.2 && colorAnalysis.redRatio > 0.1) {
+                breedScores['Limousin'] = 0.6 + (colorAnalysis.brownRatio + colorAnalysis.redRatio) * 0.15;
+            }
+            
+            // Find highest scoring breed
+            let topBreed = 'Holstein'; // Default
+            let topScore = 0.5; // Minimum confidence
+            
+            for (let breed in breedScores) {
+                if (breedScores[breed] > topScore) {
+                    topScore = breedScores[breed];
+                    topBreed = breed;
+                }
+            }
+            
+            // Add some randomness to simulate real-world uncertainty
+            const finalConfidence = Math.min(95, (topScore * 100) + (Math.random() * 10 - 5));
+            
+            return {
+                breed: topBreed,
+                confidence: finalConfidence.toFixed(1),
+                colorAnalysis: colorAnalysis
+            };
+        }
+
+        function displayResults(breedName, confidence) {
+            const breed = cowBreeds[breedName];
+            const resultsDiv = document.getElementById('breedResults');
+            
+            resultsDiv.innerHTML = `
+                <div class="breed-result">
+                    <div class="breed-name">🐄 ${breedName}</div>
+                    <div class="confidence">Confidence: ${confidence}%</div>
+                    <div class="breed-info">
+                        <p><strong>Origin:</strong> ${breed.origin}</p>
+                        <p><strong>Average Weight:</strong> ${breed.avgWeight}</p>
+                        <p><strong>Primary Use:</strong> ${breed.purpose || breed.milkYield}</p>
+                        <p><strong>Key Characteristics:</strong></p>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            ${breed.characteristics.map(char => `<li>${char}</li>`).join('')}
+                        </ul>
+                        <p>${breed.description}</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function hideResults() {
+            document.getElementById('results').style.display = 'none';
+        }
+
+        function loadSampleImages() {
+            const gallery = document.getElementById('sampleGallery');
+            
+            if (gallery.style.display === 'none') {
+                let galleryHTML = '<h2 style="grid-column: 1/-1; text-align: center; color: #333; margin-bottom: 20px;">📸 Sample Images - Click to Test</h2>';
+                
+                sampleImages.forEach((sample, index) => {
+                    galleryHTML += `
+                        <div class="breed-card" onclick="loadSampleImage('${sample.url}', '${sample.breed}')">
+                            <h3>${sample.name}</h3>
+                            <button class="sample-btn">🖼️ Load Sample</button>
+                            <p style="margin-top: 10px; font-size: 0.9em;">Expected: ${sample.breed}</p>
+                        </div>
+                    `;
+                });
+                
+                gallery.innerHTML = galleryHTML;
+                gallery.style.display = 'grid';
+            } else {
+                gallery.style.display = 'none';
+            }
+        }
+
+        function loadSampleImage(url, expectedBreed) {
+            const preview = document.getElementById('imagePreview');
+            preview.src = url;
+            preview.style.display = 'block';
+            currentImage = url;
+            document.getElementById('analyzeBtn').disabled = false;
+            hideResults();
+            
+            // Scroll to image
+            preview.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Cow Breed Detection System Loaded');
+        });
+    </script>
+</body>
+</html>
